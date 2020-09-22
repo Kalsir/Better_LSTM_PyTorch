@@ -22,7 +22,8 @@ class VariationalDropout(nn.Module):
 
         is_packed = isinstance(x, PackedSequence)
         if is_packed:
-            x, batch_sizes = x
+            batch_sizes = x[1]
+            x = x[0]
             max_batch_size = int(batch_sizes[0])
         else:
             batch_sizes = None
@@ -30,11 +31,8 @@ class VariationalDropout(nn.Module):
 
         # Drop same mask across entire sequence
         if self.batch_first:
-            m = x.new_empty(max_batch_size, 1, x.size(2), requires_grad=False).bernoulli_(1 - self.dropout)
-        else:
-            m = x.new_empty(1, max_batch_size, x.size(2), requires_grad=False).bernoulli_(1 - self.dropout)
+            m = x.new_empty(x.size(0), x.size(1), requires_grad=False).bernoulli_(1 - self.dropout)
         x = x.masked_fill(m == 0, 0) / (1 - self.dropout)
-
         if is_packed:
             return PackedSequence(x, batch_sizes)
         else:
